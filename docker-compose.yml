@@ -1,0 +1,51 @@
+# ============================================================
+#  Optional: the whole stack in docker (mysql + backend + frontend)
+#  Start with:  docker compose up --build
+#  Then open:   http://localhost:8081
+# ============================================================
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: reglog-mysql
+    environment:
+      MYSQL_DATABASE: reglog_ecommerce
+      MYSQL_USER: reglog
+      MYSQL_PASSWORD: 'reglog@123'
+      MYSQL_ROOT_PASSWORD: 'root@123'
+    ports:
+      - '3306:3306'
+    volumes:
+      - reglog-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./reg-log backend app
+    container_name: reglog-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: '3306'
+      DB_NAME: reglog_ecommerce
+      DB_USER: reglog
+      DB_PASSWORD: 'reglog@123'
+      JWT_SECRET: 'reg-log-backend-app-super-secret-key-change-me-in-production-0123456789'
+      CORS_ORIGINS: 'http://localhost:8081'
+    ports:
+      - '8080:8080'
+
+  frontend:
+    build: ./reg-log frontend app
+    container_name: reglog-frontend
+    depends_on:
+      - backend
+    ports:
+      - '8081:80'
+
+volumes:
+  reglog-mysql-data:
